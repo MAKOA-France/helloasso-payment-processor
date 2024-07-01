@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<table>
+  <base>CRM/HelloassoPaymentProcessor</base>
+  <class>HelloAssoContributionKey</class>
+  <name>civicrm_hello_asso_contribution_key</name>
+  <comment>Table to hold hello asso signing_keys</comment>
+  <log>true</log>
+
+  <primaryKey>
+    <name>contribution_id</name>
+    <autoincrement>false</autoincrement>
+  </primaryKey>
+
+  <field>
+    <name>contribution_id</name>
+    <type>int unsigned</type>
+    <comment>FK to Contribution</comment>
+    <required>true</required>
+  </field>
+
+  <field>
+    <name>signing_key</name>
+    <type>text</type>
+    <comment>Key used to sign contribution</comment>
+    <required>true</required>
+  </field>
+
+  <foreignKey>
+    <name>contribution_id</name>
+    <table>civicrm_contribution</table>
+    <key>id</key>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
+
+</table>
