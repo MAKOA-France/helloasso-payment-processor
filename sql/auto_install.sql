@@ -17,6 +17,7 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
+DROP TABLE IF EXISTS `civicrm_hello_asso_metadata`;
 DROP TABLE IF EXISTS `civicrm_hello_asso_contribution_key`;
 
 SET FOREIGN_KEY_CHECKS=1;
@@ -30,7 +31,7 @@ SET FOREIGN_KEY_CHECKS=1;
 -- *
 -- * civicrm_hello_asso_contribution_key
 -- *
--- * FIXME
+-- * Table to hold hello asso signing_keys
 -- *
 -- *******************************************************/
 CREATE TABLE `civicrm_hello_asso_contribution_key` (
@@ -38,5 +39,22 @@ CREATE TABLE `civicrm_hello_asso_contribution_key` (
   `signing_key` text NOT NULL COMMENT 'Key used to sign contribution',
   PRIMARY KEY (`contribution_id`),
   CONSTRAINT FK_civicrm_hello_asso_contribution_key_contribution_id FOREIGN KEY (`contribution_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE CASCADE
+)
+ENGINE=InnoDB;
+
+-- /*******************************************************
+-- *
+-- * civicrm_hello_asso_metadata
+-- *
+-- * FIXME
+-- *
+-- *******************************************************/
+CREATE TABLE `civicrm_hello_asso_metadata` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique HelloassoMetaData ID',
+  `contribution_id` int unsigned COMMENT 'FK to Contribution',
+  `signing_key` text NOT NULL COMMENT 'Key used to sign contribution',
+  `helloasso_ref_cmd_id` int NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT FK_civicrm_hello_asso_metadata_contribution_id FOREIGN KEY (`contribution_id`) REFERENCES `civicrm_contribution`(`id`) ON DELETE CASCADE
 )
 ENGINE=InnoDB;

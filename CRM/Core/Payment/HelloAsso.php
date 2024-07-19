@@ -125,10 +125,12 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
         $oauth_uri = $this->_paymentProcessor['url_site'] . '/oauth2/token';
         $client_id = $this->_paymentProcessor['user_name'];
         $client_secret = $this->_paymentProcessor['password'];
+
         $token = CRM_HelloassoPaymentProcessor_HelloAssoClient::getInstance()->getToken($this->_is_test, $oauth_uri, $client_id, $client_secret);
 
         // Init Cart
         $api_uri = $this->_paymentProcessor['url_site'] . '/v5/organizations/' . $this->_paymentProcessor['subject'] . '/checkout-intents';
+
         $payer = array(
             'email' => $propertyBag->getEmail(),
         );
@@ -155,9 +157,10 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
         }
         $key = random_bytes(64);
         $key = hash('sha256', $key);
+        $sig = hash_hmac('sha256', $propertyBag->getInvoiceID(), $key);
         $metadata = array(
             'invoiceID' => $propertyBag->getInvoiceID(),
-            'sig' => hash_hmac('sha256', $propertyBag->getInvoiceID(), $key)
+            'sig' => hash_hmac('sha256', $propertyBag->getInvoiceID(), $key) //N'est plus utilisé mais garder pour ceux qui ont lancienne version
         );
         $request = [
             'totalAmount' => round(intval($this->getAmount($params)) * 100),
@@ -205,10 +208,18 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
                 $contribution->trxn_id = $response->id;
                 $contribution->save();
 
-                $contributionKey = new CRM_HelloassoPaymentProcessor_BAO_HelloAssoContributionKey();
-                $contributionKey->contribution_id = $contribution->id;
-                $contributionKey->signing_key = $key;
-                $contributionKey->insert();
+                /** Inserer une ligne dans les metada entity */
+                $metadata = new CRM_HelloassoPaymentProcessor_BAO_HelloAssoMetadata();
+                $metadata->contribution_id = $contribution->id;
+                $metadata->signing_key = $key;
+                $metadata->insert();
+                // // // [SV] ça semble crasher parfois - est-ce que c'est le fait qu'il n'y a pas d'id auto increment ?
+                // // $contributionKey = new CRM_HelloassoPaymentProcessor_BAO_HelloAssoContributionKey();
+                // // $contributionKey->contribution_id = $contribution->id;
+                // // $contributionKey->signing_key = $key;
+                // // $contributionKey->insert();
+                // // // Error -> DB Error: constraint violation
+                
             } else {
                 throw new PaymentProcessorException('Unable to update invoice.');
             }
@@ -216,7 +227,9 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
             // then redirect to HelloAsso
             CRM_Core_Config::singleton()->userSystem->prePostRedirect();
             CRM_Utils_System::redirect($response->redirectUrl);
+
             // exit called before
+
             return $result;
         } else {
             throw new PaymentProcessorException('Unknown error append');
@@ -299,88 +312,101 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
         $params = json_decode(file_get_contents('php://input'), true);
         if ($params) {
             $event_type = $params['eventType'] ?? NULL;
+            // https://dev.helloasso.com/docs/les-notifications#type-de-notification
             if ($event_type === 'Payment' && $params['metadata']) {
                 $invoice_id = $params['metadata']['invoiceID'] ?? NULL;
                 $sig = $params['metadata']['sig'] ?? NULL;
-                if ($invoice_id && $sig && $params['data']) {
+                if ($invoice_id && $params['data']) {
+                    // TODO : si un payment HelloAsso traite plus d'une contribution
+
                     $contribution = new CRM_Contribute_BAO_Contribution();
                     $contribution->invoice_id = $invoice_id;
                     if ($contribution->find(TRUE)) {
-                        $contributionKey = new CRM_HelloassoPaymentProcessor_BAO_HelloAssoContributionKey();
-                        $contributionKey->contribution_id = $contribution->id;
-                        if ($contributionKey->find(TRUE)) {
-                            $key = $contributionKey->signing_key;
-                            if (hash_hmac('sha256', $invoice_id, $key) === $sig) {
-                                // Check state
-                                switch ($params['data']['state']) {
-                                    case 'Authorized':
-                                    case 'Registered':
-                                        $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed');
-                                        if (
-                                            $contribution->contribution_status_id == $completedStatusId
-                                        ) {
-                                            Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
-                                            echo 'Success: Contribution has already been handled<p>';
-                                            return;
-                                        }
-                                        civicrm_api3('Payment', 'create', [
-                                            'trxn_id' => $contribution->trxn_id,
-                                            'payment_processor_id' => $this->_paymentProcessor->id,
-                                            'contribution_id' => $contribution->id,
-                                            'total_amount' => $contribution->total_amount,
-                                        ]);
-                                        break;
-                                    case 'Refused':
-                                        $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Failed');
-                                        if (
-                                            $contribution->contribution_status_id == $completedStatusId
-                                        ) {
-                                            Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
-                                            echo 'Success: Contribution has already been handled<p>';
-                                            return;
-                                        }
-                                        \Civi\Api4\Contribution::update(FALSE)
-                                            ->addValue('contribution_status_id:name', 'Failed')
-                                            ->addValue('cancel_date', 'now')
-                                            ->addWhere('id', '=', $contribution->id)
-                                            ->execute();
-                                        break;
-                                    case 'Refunding':
-                                        $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Pending refund');
-                                        if (
-                                            $contribution->contribution_status_id == $completedStatusId
-                                        ) {
-                                            Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
-                                            echo 'Success: Contribution has already been handled<p>';
-                                            return;
-                                        }
-                                        \Civi\Api4\Contribution::update(FALSE)
-                                            ->addValue('contribution_status_id:name', 'Pending refund')
-                                            ->addValue('cancel_date', 'now')
-                                            ->addWhere('id', '=', $contribution->id)
-                                            ->execute();
-                                        break;
-                                    case 'Refunded':
-                                        $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Refunded');
-                                        if (
-                                            $contribution->contribution_status_id == $completedStatusId
-                                        ) {
-                                            Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
-                                            echo 'Success: Contribution has already been handled<p>';
-                                            return;
-                                        }
-                                        \Civi\Api4\Contribution::update(FALSE)
-                                            ->addValue('contribution_status_id:name', 'Refunded')
-                                            ->addValue('cancel_date', 'now')
-                                            ->addWhere('id', '=', $contribution->id)
-                                            ->execute();
-                                        break;
-                                    // Do nothing on pending approvals
-                                    default:
-                                        break;
-                                }
+                        $state = $params['data']['state']; 
+                        $helloasso_command_id = $params['data']['order']['id']; 
+                        if($helloasso_command_id){
+                            $metadata = new CRM_HelloassoPaymentProcessor_BAO_HelloAssoMetadata();
+                            $metadata->contribution_id = $contribution->id;
+                            if($metadata->find(TRUE)){
+                                // AJouter l'identifiant de reference HElloAsso
+                                $metadata->helloasso_ref_cmd_id = $helloasso_command_id;
+                                $metadata->event_type = $event_type;
+                                $metadata->state = $state;
+                                $metadata->update();
                             }
                         }
+
+                        switch ( $state) {
+                            case 'Authorized':
+                            case 'Registered':
+                                $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Completed');
+                                if (
+                                    // $contribution['contribution_status_id'] == $completedStatusId
+                                    $contribution->contribution_status_id == $completedStatusId
+                                ) {
+                                    Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
+                                    echo 'Success: Contribution has already been handled<p>';
+                                    return;
+                                }
+                                civicrm_api3('Payment', 'create', [
+                                    'trxn_id' =>  $params['data']['id'], // $contribution->trxn_id,
+                                    'payment_processor_id' => $this->_paymentProcessor->id,
+                                    'contribution_id' => $contribution->id,
+                                    'total_amount' => $contribution->total_amount,
+                                ]);
+
+                                break;
+                            case 'Refused':
+                                $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Failed');
+                                if (
+                                    $contribution->contribution_status_id == $completedStatusId
+                                ) {
+                                    Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
+                                    echo 'Success: Contribution has already been handled<p>';
+                                    return;
+                                }
+                                \Civi\Api4\Contribution::update(FALSE)
+                                    ->addValue('contribution_status_id:name', 'Failed')
+                                    ->addValue('cancel_date', 'now')
+                                    ->addWhere('id', '=', $contribution->id)
+                                    ->execute();
+                                break;
+                            case 'Refunding':
+                                $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Pending refund');
+                                if (
+                                    $contribution->contribution_status_id == $completedStatusId
+                                ) {
+                                    Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
+                                    echo 'Success: Contribution has already been handled<p>';
+                                    return;
+                                }
+                                \Civi\Api4\Contribution::update(FALSE)
+                                    ->addValue('contribution_status_id:name', 'Pending refund')
+                                    ->addValue('cancel_date', 'now')
+                                    ->addWhere('id', '=', $contribution->id)
+                                    ->execute();
+                                break;
+                            case 'Refunded':
+                                $completedStatusId = CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Refunded');
+                                if (
+                                    $contribution->contribution_status_id == $completedStatusId
+                                ) {
+                                    Civi::log()->debug('HelloAsso: Returning since contribution has already been handled. (ID: ' . $contribution->id . ').');
+                                    echo 'Success: Contribution has already been handled<p>';
+                                    return;
+                                }
+                                \Civi\Api4\Contribution::update(FALSE)
+                                    ->addValue('contribution_status_id:name', 'Refunded')
+                                    ->addValue('cancel_date', 'now')
+                                    ->addWhere('id', '=', $contribution->id)
+                                    ->execute();
+                                break;
+                            // Do nothing on pending approvals
+                            default:
+                                // checked dans 5 jours les contribution non traité ?
+                                break;
+                        }
+            
                     }
                 }
             }

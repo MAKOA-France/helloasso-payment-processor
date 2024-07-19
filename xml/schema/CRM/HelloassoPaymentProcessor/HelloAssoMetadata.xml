@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+
+<table>
+  <base>CRM/HelloassoPaymentProcessor</base>
+  <class>HelloAssoMetadata</class>
+  <name>civicrm_hello_asso_metadata</name>
+  <comment>FIXME</comment>
+  <log>true</log>
+
+ <field>
+    <name>id</name>
+    <type>int unsigned</type>
+    <required>true</required>
+    <comment>Unique HelloassoMetaData ID</comment>
+    <html>
+      <type>Number</type>
+    </html>
+  </field>
+  <primaryKey>
+    <name>id</name>
+    <autoincrement>true</autoincrement>
+  </primaryKey>
+
+   <field>
+    <name>contribution_id</name>
+    <title>Contribution ID</title>
+    <type>int unsigned</type>
+     <html>
+      <label>Contribution</label>
+      <type>EntityRef</type>
+    </html>
+    <comment>FK to Contribution</comment>
+  </field>
+  <foreignKey>
+    <name>contribution_id</name>
+    <table>civicrm_contribution</table>
+    <key>id</key>
+    <onDelete>CASCADE</onDelete>
+  </foreignKey>
+
+  <field>
+    <name>signing_key</name>
+    <type>text</type>
+    <comment>Key used to sign contribution</comment>
+    <required>true</required>
+  </field>
+
+  <field>
+    <name>helloasso_ref_cmd_id</name>
+    <title>HelloAsso Reference command ID </title>
+    <type>int</type>
+    <default>NULL</default>
+    <comment></comment> 
+    <required>false</required>  
+    <html>
+      <type>Number</type>
+    </html> 
+  </field>
+
+</table>
