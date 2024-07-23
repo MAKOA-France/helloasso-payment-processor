@@ -10,7 +10,8 @@ return [
             'name' => 'HelloAsso',
             'description' => 'HelloAsso Payments Processor',
             'class_name' => 'Payment_HelloAsso',
-
+            'is_active' => TRUE,
+            'is_default' => FALSE,
             'user_name_label' => 'Client Id',
             'password_label' => 'Client Secret',
             'subject_label' => 'Organization Name',
