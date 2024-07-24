@@ -1,7 +1,0 @@
-<?php
-
-use CRM_HelloassoPaymentProcessor_ExtensionUtil as E;
-
-class CRM_HelloassoPaymentProcessor_BAO_HelloAssoContributionKey extends CRM_HelloassoPaymentProcessor_DAO_HelloAssoContributionKey {
-
-}

@@ -162,13 +162,25 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
             'invoiceID' => $propertyBag->getInvoiceID(),
             'sig' => hash_hmac('sha256', $propertyBag->getInvoiceID(), $key) //N'est plus utilisé mais garder pour ceux qui ont lancienne version
         );
+
+        $backUrl = $this->getGoBackUrl($params['qfKey']);
+        $errorUrl = $this->getCancelUrl($params['qfKey']);
+        $returnUrl = $this->getReturnSuccessUrl($params['qfKey']);
+        Civi::log()->debug(' > backUrl : '. print_r($backUrl,1));
+        Civi::log()->debug(' > errorUrl : '. print_r($errorUrl,1));
+        Civi::log()->debug(' > returnUrl : '. print_r($returnUrl,1));
+
+        // // https://antoine2-dev.fhp.makoa.net/civicrm/contribute/transact?_qf_ThankYou_display=1&qfKey=CRMContributeControllerContributionldprdsvtf1ckw84sc00w440gggkcgkk80cs4s0sw400g4sgw4_735
+        // $returnUrl =  str_replace("civicrm/contribute/transact?_qf_ThankYou_display=1","civicrm/payment/ipn/3?_qf_ThankYou_display=1", $returnUrl);   // 'https://antoine2-dev.fhp.makoa.net/civicrm/payment/ipn/3';
+        //  Civi::log()->debug(' > returnUrl2 : '. print_r($returnUrl,1));
+        
         $request = [
             'totalAmount' => round(intval($this->getAmount($params)) * 100),
             'initialAmount' => round(intval($this->getAmount($params)) * 100),
             'itemName' => $this->getPaymentDescription($params, 250),
-            'backUrl' => $this->getGoBackUrl($params['qfKey']),
-            'errorUrl' => $this->getCancelUrl($params['qfKey']),
-            'returnUrl' => $this->getReturnSuccessUrl($params['qfKey']),
+            'backUrl' => $backUrl,
+            'errorUrl' => $errorUrl,
+            'returnUrl' => $returnUrl,
             'containsDonation' => FALSE,
             'payer' => $payer,
             'metadata' => $metadata
@@ -309,7 +321,9 @@ class CRM_Core_Payment_HelloAsso extends CRM_Core_Payment
 
     public function handlePaymentNotification()
     {
+        // Civi::log()->debug('-- handlePaymentNotification -- ');
         $params = json_decode(file_get_contents('php://input'), true);
+        // Civi::log()->debug(' > params : '. print_r($params,1));
         if ($params) {
             $event_type = $params['eventType'] ?? NULL;
             // https://dev.helloasso.com/docs/les-notifications#type-de-notification
