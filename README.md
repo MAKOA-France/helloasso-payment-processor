@@ -105,7 +105,7 @@ Si vous ne le voyez pas c’est que le type passerelle HelloAsso n’est pas act
 
 ### Support
 Veuillez publier des rapports de bogues dans le suivi des issues de ce projet sur le Gitlab de CiviCRM :
-https://lab.civicrm.org/extensions/helloasso/issues
+https://lab.civicrm.org/extensions/helloasso-payment-processor/-/issues
 Bien que nous fassions de notre mieux pour fournir un support bénévole pour cette extension, merci d’envisager de contribuer financièrement au soutien ou au développement de cette extension si vous le pouvez.
 
 Support commercial disponible auprès de Makoa :
