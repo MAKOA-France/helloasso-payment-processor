@@ -21,13 +21,14 @@ Mon compte > Intégration et API
   - https://api.helloasso.com/v5 (live)
   - https://api.helloasso-sandbox.com/v5 (test)
 
-![le logo de Framasoft](https://framasoft.org/nav/img/logo.png)
+
 
 remarque : corriger dans l’extension les noms de ces deux champs : 
 Organization name > nom de l’organisation
 URL du site > URL du point d’appel HelloAsso
 
 ### Installation & Paramétrage
+
 #### 1. Installer l'extension 
 source de l’extension : gitlab ou shop officiel CiviCRM
 Elle crée un type de passerelle de paiement HelloAsso (comparable dans le principe à Paypal, Stripe ou le SEPA)
@@ -119,4 +120,4 @@ Makoa est une société basée en France, à Paris. Notre mission est de simplif
 
 ## Known Issues
 
-(* FIXME *)
+
