@@ -1,10 +1,10 @@
 # helloasso-payment-processor
 
-Moved here: https://lab.civicrm.org/ryarnyah/helloasso-payment-processor/
+Moved from here: https://lab.civicrm.org/ryarnyah/helloasso-payment-processor/
 
-L’extension Helloasso-payment-processor permet d'utilisé la passerelle de paiment HelloAsso avec civicrm
+L’extension Helloasso-payment-processor permet d'utiliser la passerelle de paiment 'checkout' de ([HelloAsso](https://info.helloasso.com/solution/checkout)) avec CiviCRM.
 
-This is an [extension for CiviCRM](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/), licensed under [AGPL-3.0](LICENSE.txt).
+This is an [extension for CiviCRM](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/), licensed under [AGPL-3.0](LICENSE.txt) that provides integration for the HelloAsso Checkout payment gateway.
 
 ## Getting Started
 ### Prérequis
@@ -23,7 +23,7 @@ Mon compte > Intégration et API
 
 
 
-remarque : corriger dans l’extension les noms de ces deux champs : 
+Remarque : corriger dans l’extension les noms de ces deux champs : 
 Organization name > nom de l’organisation
 URL du site > URL du point d’appel HelloAsso
 
@@ -93,6 +93,12 @@ IMAGE
 IMAGE
 
 ### Remarques
+##### Utilisation de la page de contribution via une iframe
+Si vous souhaitez intégrer la page de contribution (adhésion, inscription à un événement...) il faut utiliser une version récente de CiviCRM supportant l'extension iframe. Après l'activation via `cv` vous pourrez intégrer l'URL selon cette syntaxe
+<IFRAME SRC="http://example.org **/iframe.php** /civicrm/contribute/transact?reset=1&id=1"/> (pour DRUPAL)
+Documentation plus complète ici https://lab.civicrm.org/dev/core/-/tree/master/ext/iframe 
+et pour Wordpress : https://lab.civicrm.org/dev/core/-/issues/5464
+
 ##### Lors des tests sur la sandBox
 Utilisation des CB de test (https://docs.sips.worldline-solutions.com/fr/cartes-de-test.html.)
 Ne pas utiliser les carte mastercard (cela ne fonctionne pas)
@@ -107,6 +113,7 @@ Si vous ne le voyez pas c’est que le type passerelle HelloAsso n’est pas act
 Veuillez publier des rapports de bogues dans le suivi des issues de ce projet sur le Gitlab de CiviCRM :
 https://lab.civicrm.org/extensions/helloasso-payment-processor/-/issues
 Bien que nous fassions de notre mieux pour fournir un support bénévole pour cette extension, merci d’envisager de contribuer financièrement au soutien ou au développement de cette extension si vous le pouvez.
+
 
 Support commercial disponible auprès de Makoa :
 www.makoa.fr
